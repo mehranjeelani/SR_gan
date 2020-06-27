@@ -1,6 +1,6 @@
 import math
 import torch
-from torch import nn
+import torch.nn as nn
 
 
 class Generator(nn.Module):
@@ -8,6 +8,7 @@ class Generator(nn.Module):
         upsample_block_num = int(math.log(scale_factor, 2))
 
         super(Generator, self).__init__()
+        self.tan = nn.Tanh()
         self.block1 = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=9, padding=4),
             nn.PReLU()
@@ -35,53 +36,59 @@ class Generator(nn.Module):
         block7 = self.block7(block6)
         block8 = self.block8(block1 + block7)
 
-        return (torch.tanh(block8) + 1) / 2
+        return (self.tan(block8) + 1) / 2
 
 
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
+        self.sig  = nn.Sigmoid()
         self.net = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=3, padding=1),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2,inplace=False),
 
             nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2,inplace=False),
 
             nn.Conv2d(64, 128, kernel_size=3, padding=1),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2,inplace=False),
 
             nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2,inplace=False),
 
             nn.Conv2d(128, 256, kernel_size=3, padding=1),
             nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2,inplace=False),
 
             nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2,inplace=False),
 
             nn.Conv2d(256, 512, kernel_size=3, padding=1),
             nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2,inplace=False),
 
             nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2,inplace=False),
 
             nn.AdaptiveAvgPool2d(1),
             nn.Conv2d(512, 1024, kernel_size=1),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2,inplace=False),
             nn.Conv2d(1024, 1, kernel_size=1)
         )
 
     def forward(self, x):
         batch_size = x.size(0)
-        return torch.sigmoid(self.net(x).view(batch_size))
+        print('shape is ',self.net(x).shape)
+        out = self.net(x).clone()
+        out2 = self.sig(out)
+        out3 = out2.view(batch_size)
+        
+        return out3
 
 
 class ResidualBlock(nn.Module):

@@ -14,7 +14,7 @@ import pytorch_ssim
 from data_utils import TrainDatasetFromFolder, ValDatasetFromFolder, display_transform
 from loss import GeneratorLoss
 from model import Generator, Discriminator
-
+#torch.autograd.set_detect_anomaly(True)
 parser = argparse.ArgumentParser(description='Train Super Resolution Models')
 parser.add_argument('--crop_size', default=88, type=int, help='training images crop size')
 parser.add_argument('--upscale_factor', default=4, type=int, choices=[2, 4, 8],
@@ -31,8 +31,8 @@ if __name__ == '__main__':
     
     train_set = TrainDatasetFromFolder('data/DIV2K_train_HR', crop_size=CROP_SIZE, upscale_factor=UPSCALE_FACTOR)
     val_set = ValDatasetFromFolder('data/DIV2K_valid_HR', upscale_factor=UPSCALE_FACTOR)
-    train_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=64, shuffle=True)
-    val_loader = DataLoader(dataset=val_set, num_workers=4, batch_size=1, shuffle=False)
+    train_loader = DataLoader(dataset=train_set, num_workers=0, batch_size=64, shuffle=True)
+    val_loader = DataLoader(dataset=val_set, num_workers=0, batch_size=1, shuffle=False)
     
     netG = Generator(UPSCALE_FACTOR)
     print('# generator parameters:', sum(param.numel() for param in netG.parameters()))
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     optimizerD = optim.Adam(netD.parameters())
     
     results = {'d_loss': [], 'g_loss': [], 'd_score': [], 'g_score': [], 'psnr': [], 'ssim': []}
-    
+    torch.autograd.set_detect_anomaly(True)
     for epoch in range(1, NUM_EPOCHS + 1):
         train_bar = tqdm(train_loader)
         running_results = {'batch_sizes': 0, 'd_loss': 0, 'g_loss': 0, 'd_score': 0, 'g_score': 0}
@@ -72,26 +72,34 @@ if __name__ == '__main__':
             if torch.cuda.is_available():
                 z = z.cuda()
             fake_img = netG(z)
-    
-            netD.zero_grad()
+            fake_out = netD(fake_img).mean() 
+            g_loss = generator_criterion(fake_out, fake_img, real_img)
+            netG.zero_grad()
+            g_loss.backward()
+            optimizerG.step()
+           # netD.zero_grad()
             real_out = netD(real_img).mean()
-            fake_out = netD(fake_img).mean()
-            d_loss = 1 - real_out + fake_out
+            fake_out = netD(fake_img.detach()).mean() 
+           
+            d_loss = 1 + fake_out-real_out
+            netD.zero_grad()
             d_loss.backward(retain_graph=True)
             optimizerD.step()
     
             ############################
             # (2) Update G network: minimize 1-D(G(z)) + Perception Loss + Image Loss + TV Loss
             ###########################
-            netG.zero_grad()
-            g_loss = generator_criterion(fake_out, fake_img, real_img)
-            g_loss.backward()
+            #torch.autograd.set_detect_anomaly(True)
+            #netG.zero_grad()
+            #g_loss = generator_criterion(fake_out, fake_img, real_img)
+
+           # g_loss.backward()
             
             fake_img = netG(z)
             fake_out = netD(fake_img).mean()
             
             
-            optimizerG.step()
+            #optimizerG.step()
 
             # loss for current batch before optimization 
             running_results['g_loss'] += g_loss.item() * batch_size
