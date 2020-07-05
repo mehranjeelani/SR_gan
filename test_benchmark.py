@@ -21,20 +21,20 @@ opt = parser.parse_args()
 
 UPSCALE_FACTOR = opt.upscale_factor
 MODEL_NAME = opt.model_name
-
-results = {'Set5': {'psnr': [], 'ssim': []}, 'Set14': {'psnr': [], 'ssim': []}, 'BSD100': {'psnr': [], 'ssim': []},
-           'Urban100': {'psnr': [], 'ssim': []}, 'SunHays80': {'psnr': [], 'ssim': []}}
+KEY = 'DIV2K'
+results = {KEY: {'psnr': [], 'ssim': [],'psnr_bicubic':[],'ssim_bicubic':[]}}#, 'Set14': {'psnr': [], 'ssim': []}, 'BSD100': {'psnr': [], 'ssim': []},
+           #'Urban100': {'psnr': [], 'ssim': []}, 'SunHays80': {'psnr': [], 'ssim': []}}
 
 model = Generator(UPSCALE_FACTOR).eval()
 if torch.cuda.is_available():
     model = model.cuda()
 model.load_state_dict(torch.load('epochs/' + MODEL_NAME))
 
-test_set = TestDatasetFromFolder('data/test', upscale_factor=UPSCALE_FACTOR)
+test_set = TestDatasetFromFolder('data/test/DIV2K', upscale_factor=UPSCALE_FACTOR)
 test_loader = DataLoader(dataset=test_set, num_workers=4, batch_size=1, shuffle=False)
 test_bar = tqdm(test_loader, desc='[testing benchmark datasets]')
 
-out_path = 'benchmark_results/SRF_' + str(UPSCALE_FACTOR) + '/'
+out_path = 'benchmark_results/'+KEY+'_' + str(UPSCALE_FACTOR) + '/'
 if not os.path.exists(out_path):
     os.makedirs(out_path)
 
@@ -42,15 +42,20 @@ for image_name, lr_image, hr_restore_img, hr_image in test_bar:
     image_name = image_name[0]
     lr_image = Variable(lr_image, volatile=True)
     hr_image = Variable(hr_image, volatile=True)
+    hr_restore_img = Variable(hr_image, volatile=True)
+
     if torch.cuda.is_available():
         lr_image = lr_image.cuda()
         hr_image = hr_image.cuda()
+        hr_restore_img = hr_restore_img.cuda()
 
     sr_image = model(lr_image)
     mse = ((hr_image - sr_image) ** 2).data.mean()
     psnr = 10 * log10(1 / mse)
     ssim = pytorch_ssim.ssim(sr_image, hr_image).data[0]
-
+    mse_bicubic = ((hr_image - hr_restore_img) ** 2).data.mean()
+    psnr_bicubic = 10 * log10(1 / mse_bicubic)
+    ssim_bicubic = pytorch_ssim.ssim(hr_restore_img, hr_image).data[0]
     test_images = torch.stack(
         [display_transform()(hr_restore_img.squeeze(0)), display_transform()(hr_image.data.cpu().squeeze(0)),
          display_transform()(sr_image.data.cpu().squeeze(0))])
@@ -59,22 +64,31 @@ for image_name, lr_image, hr_restore_img, hr_image in test_bar:
                      image_name.split('.')[-1], padding=5)
 
     # save psnr\ssim
-    results[image_name.split('_')[0]]['psnr'].append(psnr)
-    results[image_name.split('_')[0]]['ssim'].append(ssim)
+
+    results[KEY]['psnr'].append(psnr)
+    results[KEY]['ssim'].append(ssim)
 
 out_path = 'statistics/'
-saved_results = {'psnr': [], 'ssim': []}
+saved_results = {'psnr': [], 'ssim': [],'psnr_bicubic':[],'ssim_bicubic':[]}
 for item in results.values():
     psnr = np.array(item['psnr'])
     ssim = np.array(item['ssim'])
-    if (len(psnr) == 0) or (len(ssim) == 0):
+    psnr_bicubic = np.array(item['psnr_bicubic'])
+    ssim_bicubic = np.array(item['ssim_bicubic'])
+    if (len(psnr) == 0) or (len(ssim) == 0) or (len(psnr_bicubic)==0) or (len(ssim_bicubic)==0):
         psnr = 'No data'
         ssim = 'No data'
+        psnr_bicubic = 'No data'
+        ssim_bicubic = 'No data'
     else:
         psnr = psnr.mean()
         ssim = ssim.mean()
+        psnr_bicubic = psnr_bicubic.mean()
+        ssim_bicubic = ssim_bicubic.mean()
     saved_results['psnr'].append(psnr)
     saved_results['ssim'].append(ssim)
+    saved_results['psnr_bicubic'].append(psnr_bicubic)
+    saved_results['ssim_bicubic'].append(ssim_bicubic)
 
 data_frame = pd.DataFrame(saved_results, results.keys())
 data_frame.to_csv(out_path + 'srf_' + str(UPSCALE_FACTOR) + '_test_results.csv', index_label='DataSet')
