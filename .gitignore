@@ -2,7 +2,7 @@ data/
 training_results/
 epochs/
 train.txt
-val.txt
+
 readme.txt
 test2.jpg
 test2_wo_aliasing.jpg
