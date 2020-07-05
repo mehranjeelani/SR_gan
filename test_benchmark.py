@@ -52,12 +52,15 @@ for image_name, lr_image, hr_restore_img, hr_image in test_bar:
     sr_image = model(lr_image)
     mse = ((hr_image - sr_image) ** 2).data.mean()
     psnr = 10 * log10(1 / mse)
-    ssim = pytorch_ssim.ssim(sr_image, hr_image).data[0]
+    ssim = pytorch_ssim.ssim(sr_image, hr_image).item()
+    #print('psnr is {}\tssim is {}'.format(psnr,ssim))
+    #ssim = pytorch_ssim.ssim(sr_image, hr_image).item()
     mse_bicubic = ((hr_image - hr_restore_img) ** 2).data.mean()
     psnr_bicubic = 10 * log10(1 / mse_bicubic)
-    ssim_bicubic = pytorch_ssim.ssim(hr_restore_img, hr_image).data[0]
+    ssim_bicubic = pytorch_ssim.ssim(hr_restore_img, hr_image).item()
+    print('mse bicubic is {}\tssim bicubic is {}'.format(mse_bicubic,ssim_bicubic))
     test_images = torch.stack(
-        [display_transform()(hr_restore_img.squeeze(0)), display_transform()(hr_image.data.cpu().squeeze(0)),
+        [display_transform()(hr_restore_img.data.cpu().squeeze(0)), display_transform()(hr_image.data.cpu().squeeze(0)),
          display_transform()(sr_image.data.cpu().squeeze(0))])
     image = utils.make_grid(test_images, nrow=3, padding=5)
     utils.save_image(image, out_path + image_name.split('.')[0] + '_psnr_%.4f_ssim_%.4f.' % (psnr, ssim) +
@@ -75,16 +78,18 @@ for item in results.values():
     ssim = np.array(item['ssim'])
     psnr_bicubic = np.array(item['psnr_bicubic'])
     ssim_bicubic = np.array(item['ssim_bicubic'])
-    if (len(psnr) == 0) or (len(ssim) == 0) or (len(psnr_bicubic)==0) or (len(ssim_bicubic)==0):
+    '''
+    if (psnr.size == 0) or (ssim.size == 0) or (psnr_bicubic.size==0) or (ssim_bicubic.size==0):
         psnr = 'No data'
         ssim = 'No data'
         psnr_bicubic = 'No data'
         ssim_bicubic = 'No data'
-    else:
-        psnr = psnr.mean()
-        ssim = ssim.mean()
-        psnr_bicubic = psnr_bicubic.mean()
-        ssim_bicubic = ssim_bicubic.mean()
+    '''
+    
+    psnr = psnr.mean()
+    ssim = ssim.mean()
+    psnr_bicubic = psnr_bicubic.mean()
+    ssim_bicubic = ssim_bicubic.mean()
     saved_results['psnr'].append(psnr)
     saved_results['ssim'].append(ssim)
     saved_results['psnr_bicubic'].append(psnr_bicubic)
