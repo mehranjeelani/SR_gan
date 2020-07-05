@@ -52,7 +52,7 @@ if __name__ == '__main__':
     results = {'d_loss': [], 'g_loss': [], 'd_score': [], 'g_score': [], 'psnr': [], 'ssim': []}
     torch.autograd.set_detect_anomaly(True)
     for epoch in range(1, NUM_EPOCHS + 1):
-        '''
+
         train_bar = tqdm(train_loader)
         running_results = {'batch_sizes': 0, 'd_loss': 0, 'g_loss': 0, 'd_score': 0, 'g_score': 0}
     
@@ -118,7 +118,7 @@ if __name__ == '__main__':
         out_path = 'training_results/SRF_' + str(UPSCALE_FACTOR) + '/'
         if not os.path.exists(out_path):
             os.makedirs(out_path)
-        '''
+        
         with torch.no_grad():
             val_bar = tqdm(val_loader)
             valing_results = {'mse': 0, 'ssims': 0, 'psnr': 0, 'ssim': 0, 'batch_sizes': 0}
