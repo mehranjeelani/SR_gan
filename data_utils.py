@@ -1,10 +1,20 @@
 from os import listdir
 from os.path import join
-
+import torch
 from PIL import Image
 from torch.utils.data.dataset import Dataset
 from torchvision.transforms import Compose, RandomCrop, ToTensor, ToPILImage, CenterCrop, Resize
 
+class AddGaussianNoise(object):
+    def __init__(self, mean=0., std=1.):
+        self.mean = mean
+        self.std = std
+                                                                                                                                            
+    def __call__(self, tensor):
+        return tensor + torch.randn(tensor.size()) * self.std + self.mean
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
 
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in ['.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG'])
@@ -25,7 +35,7 @@ def train_lr_transform(crop_size, upscale_factor):
     return Compose([
         ToPILImage(),
         Resize(crop_size // upscale_factor, interpolation=Image.NEAREST),
-        ToTensor()
+        ToTensor(),
         AddGaussianNoise(0., 1.)
     ])
 
@@ -110,15 +120,5 @@ class TestDatasetFromFolder(Dataset):
         '''
     def __len__(self):
         return len(self.image_filenames)
-    class AddGaussianNoise(object):
-        def __init__(self, mean=0., std=1.):
-            self.mean = mean
-            self.std = std
-                                                                                                                                                
-        def __call__(self, tensor):
-            return tensor + torch.randn(tensor.size()) * self.std + self.mean
-
-        def __repr__(self):
-            return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
 
 

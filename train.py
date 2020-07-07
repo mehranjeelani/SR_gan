@@ -20,7 +20,7 @@ parser.add_argument('--crop_size', default=88, type=int, help='training images c
 parser.add_argument('--upscale_factor', default=4, type=int, choices=[2, 4, 8],
                     help='super resolution upscale factor')
 parser.add_argument('--num_epochs', default=100, type=int, help='train epoch number')
-
+CASE = 'train_gauss_std_1'
 
 if __name__ == '__main__':
     opt = parser.parse_args()
@@ -29,10 +29,10 @@ if __name__ == '__main__':
     UPSCALE_FACTOR = opt.upscale_factor
     NUM_EPOCHS = opt.num_epochs
     
-    train_set = TrainDatasetFromFolder('data/DIV2K_train_HR', crop_size=CROP_SIZE, upscale_factor=UPSCALE_FACTOR)
-    val_set = ValDatasetFromFolder('data/DIV2K_valid_HR', upscale_factor=UPSCALE_FACTOR)
-    train_loader = DataLoader(dataset=train_set, num_workers=0, batch_size=64, shuffle=True)
-    val_loader = DataLoader(dataset=val_set, num_workers=0, batch_size=1, shuffle=False)
+    train_set = TrainDatasetFromFolder('data/train_HR', crop_size=CROP_SIZE, upscale_factor=UPSCALE_FACTOR)
+    val_set = ValDatasetFromFolder('data/valid_HR', upscale_factor=UPSCALE_FACTOR)
+    train_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=64, shuffle=True)
+    val_loader = DataLoader(dataset=val_set, num_workers=4, batch_size=1, shuffle=False)
     
     netG = Generator(UPSCALE_FACTOR)
     print('# generator parameters:', sum(param.numel() for param in netG.parameters()))
@@ -58,6 +58,7 @@ if __name__ == '__main__':
     
         netG.train()
         netD.train()
+        
         for data, target in train_bar:
             g_update_first = True
             batch_size = data.size(0)
@@ -115,7 +116,7 @@ if __name__ == '__main__':
                 running_results['g_score'] / running_results['batch_sizes']))
     
         netG.eval()
-        out_path = 'training_results/SRF_' + str(UPSCALE_FACTOR) + '/'
+        out_path = 'training_results/Pascal_VOC/SRF_' + str(UPSCALE_FACTOR) + '/'
         if not os.path.exists(out_path):
             os.makedirs(out_path)
         
@@ -142,22 +143,30 @@ if __name__ == '__main__':
                 val_bar.set_description(
                     desc='[converting LR images to SR images] PSNR: %.4f dB SSIM: %.4f' % (
                         valing_results['psnr'], valing_results['ssim']))
+                if epoch %10 == 0:
+                    val_images.extend(
+                        [display_transform()(val_hr_restore.squeeze(0)), display_transform()(hr.data.cpu().squeeze(0)),
+                         display_transform()(sr.data.cpu().squeeze(0))])
+            if epoch %10==0:
+                val_images = torch.stack(val_images)
+                #print('total number of images are {} total number of chunks are {}'.format(val_images.size(0),val_images.size(0)//15))
+                val_images = torch.split(val_images, 15)
+                #print('bfore tqdm val images shape is {}'.format(val_images[0].shape))
+                val_save_bar = tqdm(val_images[:-1], desc='[saving training results]')
+                #print('images per chunk:{}'.format( val_save_bar[0].shape))
+
+
+                index = 1
+                for image in val_save_bar:
+                    #print('image shpae is {}'.format(image.shape))
+                    image = utils.make_grid(image, nrow=3, padding=5)
+                    utils.save_image(image, out_path + 'epoch_%d_index_%d.png' % (epoch, index), padding=5)
+                    index += 1
         
-                val_images.extend(
-                    [display_transform()(val_hr_restore.squeeze(0)), display_transform()(hr.data.cpu().squeeze(0)),
-                     display_transform()(sr.data.cpu().squeeze(0))])
-            val_images = torch.stack(val_images)
-            val_images = torch.chunk(val_images, val_images.size(0) // 15)
-            val_save_bar = tqdm(val_images, desc='[saving training results]')
-            index = 1
-            for image in val_save_bar:
-                image = utils.make_grid(image, nrow=3, padding=5)
-                utils.save_image(image, out_path + 'epoch_%d_index_%d.png' % (epoch, index), padding=5)
-                index += 1
-    
         # save model parameters
-        torch.save(netG.state_dict(), 'epochs/netG_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
-        torch.save(netD.state_dict(), 'epochs/netD_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
+        if epoch%10 == 0 and epoch != 0:
+            torch.save(netG.state_dict(), 'epochs/Pascal_VOC/netG_%s_epoch_%d_%d.pth' % (CASE,UPSCALE_FACTOR, epoch))
+            torch.save(netD.state_dict(), 'epochs/Pascal_VOC/netD_%s_epoch_%d_%d.pth' % (CASE,UPSCALE_FACTOR, epoch))
         # save loss\scores\psnr\ssim
         results['d_loss'].append(running_results['d_loss'] / running_results['batch_sizes'])
         results['g_loss'].append(running_results['g_loss'] / running_results['batch_sizes'])
@@ -167,7 +176,9 @@ if __name__ == '__main__':
         results['ssim'].append(valing_results['ssim'])
     
         if epoch % 10 == 0 and epoch != 0:
-            out_path = 'statistics/'
+            out_path = 'statistics/Pascal_VOC/'
+            if not os.path.exists(out_path):
+                os.makedirs(out_path)
             data_frame = pd.DataFrame(
                 data={'Loss_D': results['d_loss'], 'Loss_G': results['g_loss'], 'Score_D': results['d_score'],
                       'Score_G': results['g_score'], 'PSNR': results['psnr'], 'SSIM': results['ssim']},

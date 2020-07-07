@@ -10,3 +10,6 @@ test2_wo_aliasing.jpg
 JPEGImages/
 benchmark_results/
 statistics/
+val.txt
+__pycache__/
+script.py

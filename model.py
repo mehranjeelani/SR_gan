@@ -83,8 +83,8 @@ class Discriminator(nn.Module):
 
     def forward(self, x):
         batch_size = x.size(0)
-        print('shape is ',self.net(x).shape)
-        out = self.net(x).clone()
+        #print('shape is ',self.net(x).shape)
+        out = self.net(x)
         out2 = self.sig(out)
         out3 = out2.view(batch_size)
         
