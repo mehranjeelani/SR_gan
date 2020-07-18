@@ -6,6 +6,7 @@ from torchvision.models.vgg import vgg16
 class GeneratorLoss(nn.Module):
     def __init__(self):
         super(GeneratorLoss, self).__init__()
+        self.criterion = nn.BCELoss()
         vgg = vgg16(pretrained=True)
         loss_network = nn.Sequential(*list(vgg.features)[:31]).eval()
         for param in loss_network.parameters():
@@ -14,9 +15,10 @@ class GeneratorLoss(nn.Module):
         self.mse_loss = nn.MSELoss()
         self.tv_loss = TVLoss()
 
-    def forward(self, out_labels, out_images, target_images):
+    def forward(self, out_labels, out_images, target_images,b_size):
         # Adversarial Loss
-        adversarial_loss = torch.mean(1 - out_labels)
+        label = torch.ones((b_size,)).cuda()
+        adversarial_loss = self.criterion(out_labels,label) 
         # Perception Loss
         perception_loss = self.mse_loss(self.loss_network(out_images), self.loss_network(target_images))
         # Image Loss
