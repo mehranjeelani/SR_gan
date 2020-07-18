@@ -13,24 +13,25 @@ from tqdm import tqdm
 import pytorch_ssim
 from data_utils import TestDatasetFromFolder, display_transform
 from model import Generator
-
+CASE ='train_gauss_std_1' 
 parser = argparse.ArgumentParser(description='Test Benchmark Datasets')
 parser.add_argument('--upscale_factor', default=4, type=int, help='super resolution upscale factor')
-parser.add_argument('--model_name', default='netG_epoch_4_100.pth', type=str, help='generator model epoch name')
+parser.add_argument('--model_name', default='netG_'+CASE+'_epoch_4_100.pth', type=str, help='generator model epoch name')
 opt = parser.parse_args()
 
 UPSCALE_FACTOR = opt.upscale_factor
 MODEL_NAME = opt.model_name
 KEY = 'DIV2K'
+
 results = {KEY: {'psnr': [], 'ssim': [],'psnr_bicubic':[],'ssim_bicubic':[]}}#, 'Set14': {'psnr': [], 'ssim': []}, 'BSD100': {'psnr': [], 'ssim': []},
            #'Urban100': {'psnr': [], 'ssim': []}, 'SunHays80': {'psnr': [], 'ssim': []}}
 
 model = Generator(UPSCALE_FACTOR).eval()
 if torch.cuda.is_available():
     model = model.cuda()
-model.load_state_dict(torch.load('epochs/' + MODEL_NAME))
+model.load_state_dict(torch.load('epochs/'+KEY+'/' + MODEL_NAME))
 
-test_set = TestDatasetFromFolder('data/test/DIV2K', upscale_factor=UPSCALE_FACTOR)
+test_set = TestDatasetFromFolder('data/test/'+KEY+'/', upscale_factor=UPSCALE_FACTOR)
 test_loader = DataLoader(dataset=test_set, num_workers=4, batch_size=1, shuffle=False)
 test_bar = tqdm(test_loader, desc='[testing benchmark datasets]')
 
@@ -39,6 +40,7 @@ if not os.path.exists(out_path):
     os.makedirs(out_path)
 
 for image_name, lr_image, hr_restore_img, hr_image in test_bar:
+    
     image_name = image_name[0]
     lr_image = Variable(lr_image, volatile=True)
     hr_image = Variable(hr_image, volatile=True)
@@ -58,7 +60,7 @@ for image_name, lr_image, hr_restore_img, hr_image in test_bar:
     mse_bicubic = ((hr_image - hr_restore_img) ** 2).data.mean()
     psnr_bicubic = 10 * log10(1 / mse_bicubic)
     ssim_bicubic = pytorch_ssim.ssim(hr_restore_img, hr_image).item()
-    print('mse bicubic is {}\tssim bicubic is {}'.format(mse_bicubic,ssim_bicubic))
+    #print('mse bicubic is {}\tssim bicubic is {}'.format(mse_bicubic,ssim_bicubic))
     test_images = torch.stack(
         [display_transform()(hr_restore_img.data.cpu().squeeze(0)), display_transform()(hr_image.data.cpu().squeeze(0)),
          display_transform()(sr_image.data.cpu().squeeze(0))])
@@ -71,7 +73,8 @@ for image_name, lr_image, hr_restore_img, hr_image in test_bar:
     results[KEY]['psnr'].append(psnr)
     results[KEY]['ssim'].append(ssim)
 
-out_path = 'statistics/'
+
+out_path = 'statistics/'+DATASET+'/'
 saved_results = {'psnr': [], 'ssim': [],'psnr_bicubic':[],'ssim_bicubic':[]}
 for item in results.values():
     psnr = np.array(item['psnr'])
@@ -96,4 +99,5 @@ for item in results.values():
     saved_results['ssim_bicubic'].append(ssim_bicubic)
 
 data_frame = pd.DataFrame(saved_results, results.keys())
-data_frame.to_csv(out_path + 'srf_' + str(UPSCALE_FACTOR) + '_test_results.csv', index_label='DataSet')
+data_frame.to_csv(out_path + 'srf_' + str(UPSCALE_FACTOR) + '_test_results_std1.csv', index_label='DataSet')
+
