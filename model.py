@@ -115,10 +115,12 @@ class UpsampleBLock(nn.Module):
         super(UpsampleBLock, self).__init__()
         self.conv = nn.Conv2d(in_channels, in_channels * up_scale ** 2, kernel_size=3, padding=1)
         self.pixel_shuffle = nn.PixelShuffle(up_scale)
+        #self.transpose_conv= nn.ConvTranspose2d(in_channels,in_channels,3,stride=2, padding =1, output_padding=1)
         self.prelu = nn.PReLU()
-
+        
     def forward(self, x):
         x = self.conv(x)
         x = self.pixel_shuffle(x)
+        #x = self.transpose_conv(x)
         x = self.prelu(x)
         return x
