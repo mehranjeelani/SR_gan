@@ -15,3 +15,4 @@ __pycache__/
 script.py
 display.py
 test_video.py
+test_image.py
