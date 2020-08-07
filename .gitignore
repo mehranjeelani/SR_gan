@@ -13,3 +13,5 @@ statistics/
 val.txt
 __pycache__/
 script.py
+display.py
+test_video.py
