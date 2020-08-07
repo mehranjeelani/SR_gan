@@ -98,8 +98,8 @@ class ValDatasetFromFolder(Dataset):
         lr_image_noisy = noisy_transform_val()(lr_image)
         hr_restore_img = hr_scale(lr_image)
         hr_restore_img_noisy = hr_scale(lr_image_noisy)
-        return (ToTensor()(lr_image)), ToTensor()(hr_restore_img), ToTensor()(hr_image)
-        #return (ToTensor()(lr_image_noisy)), ToTensor()(hr_restore_img_noisy), ToTensor()(hr_image)
+        #return (ToTensor()(lr_image)), ToTensor()(hr_restore_img), ToTensor()(hr_image)
+        return (ToTensor()(lr_image_noisy)), ToTensor()(hr_restore_img_noisy), ToTensor()(hr_image)
 
 	
 
@@ -128,8 +128,8 @@ class TestDatasetFromFolder(Dataset):
         hr_restore_img_noisy = hr_scale(lr_image_noisy)
  
         image_name = self.image_filenames[index].split('/')[-1]
-        #return image_name, (ToTensor()(lr_image_noisy)), ToTensor()(hr_restore_img_noisy), ToTensor()(hr_image)
-        return image_name, ToTensor()(lr_image), ToTensor()(hr_restore_img), ToTensor()(hr_image)
+        return image_name, (ToTensor()(lr_image_noisy)), ToTensor()(hr_restore_img_noisy), ToTensor()(hr_image)
+        #return image_name, ToTensor()(lr_image), ToTensor()(hr_restore_img), ToTensor()(hr_image)
     
     def __len__(self):
         return len(self.image_filenames)
