@@ -13,13 +13,12 @@ from tqdm import tqdm
 import pytorch_ssim
 from data_utils import TestDatasetFromFolder, display_transform
 from model import Generator
-CASE ='train_gauss_std_1' 
 parser = argparse.ArgumentParser(description='Test Benchmark Datasets')
 parser.add_argument('--upscale_factor', default=4, type=int, help='super resolution upscale factor')
-parser.add_argument('--model_name', default='netG_'+CASE+'_epoch_4_100.pth', type=str, help='generator model epoch name')
+parser.add_argument('--model_name', default='netG_train_noise_std_0.125_epoch_183_upscale_4.pth', type=str, help='generator model epoch name')
 parser.add_argument('--data_set',default='Pascal_VOC',type=str,help='training dataset')
-parser.add_argument('--case',default = 'train_without_noise',type = str,help = 'noise type')
-parser.add_argument('--model_used',default = '',type = str,help = 'testing model')
+parser.add_argument('--case',default = 'train_with_noise',type = str,help = 'noise type')
+parser.add_argument('--model_used',default = 'Pascal_VOC',type = str,help = 'testing model')
 
 
 opt = parser.parse_args()
