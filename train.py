@@ -30,7 +30,7 @@ parser.add_argument('--upscale_factor', default=4, type=int, choices=[2, 4, 8],
                     help='super resolution upscale factor')
 parser.add_argument('--num_epochs', default=200, type=int, help='train epoch number')
 parser.add_argument('--data_set',default='Pascal_VOC',type=str,help='training dataset',choices=['Pascal_VOC','DIVFK'])
-parser.add_argument('--case',default = 'train_without_noise',type = str,help = 'noise type')
+parser.add_argument('--case',default = 'train_with_noise_std_0.125',type = str,help = 'noise type')
 
 
 lr = 0.0002
