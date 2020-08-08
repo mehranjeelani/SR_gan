@@ -16,7 +16,7 @@ from model import Generator
 parser = argparse.ArgumentParser(description='Test Benchmark Datasets')
 parser.add_argument('--upscale_factor', default=4, type=int, help='super resolution upscale factor')
 parser.add_argument('--model_name', default='netG_train_noise_std_0.125_epoch_59_upscale_4.pth', type=str, help='generator model epoch name')
-parser.add_argument('--data_set',default='Pascal_VOC',type=str,help='training dataset')
+parser.add_argument('--data_set',default='DIVFK',type=str,help='testing dataset')
 parser.add_argument('--case',default = 'train_with_noise',type = str,help = 'noise type')
 parser.add_argument('--model_used',default = 'Pascal_VOC',type = str,help = 'testing model')
 
